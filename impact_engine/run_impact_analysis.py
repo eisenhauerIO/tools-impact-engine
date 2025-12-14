@@ -3,7 +3,9 @@ Impact analysis function for the impact_engine package.
 """
 import pandas as pd
 from typing import Union, List
+from pathlib import Path
 from .data_sources import DataSourceManager
+from .modeling import ModelingEngine, InterruptedTimeSeriesModel
 
 
 def evaluate_impact(
@@ -12,42 +14,57 @@ def evaluate_impact(
     output_path: str = "impact_analysis_result.csv"
 ) -> str:
     """
-    Evaluate impact using business metrics retrieved through the data abstraction layer.
+    Evaluate impact using business metrics retrieved through the data abstraction layer
+    and modeling layer for statistical analysis.
+    
+    This function integrates the data abstraction layer with the modeling layer to:
+    1. Retrieve business metrics for specified products
+    2. Fit statistical models to measure causal impact
+    3. Return results from the modeling analysis
+    
+    Args:
+        config_path: Path to configuration file containing data source and model settings
+        products: List of product IDs to analyze (optional)
+        output_path: Directory path where model results should be saved
+    
+    Returns:
+        str: Path to the saved model results file
     """
     
-    # Use data abstraction layer
+    # Use data abstraction layer to retrieve business metrics
     manager = DataSourceManager()
     config = manager.load_config(config_path)
-        
+    
+    print(config)
+
     # Retrieve business metrics using data abstraction layer
     business_metrics = manager.retrieve_metrics(products)
     
-    # Perform impact analysis
-    impact_results = _perform_impact_analysis(business_metrics)
+    # Initialize modeling engine and register models
+    modeling_engine = ModelingEngine()
+    modeling_engine.register_model("interrupted_time_series", InterruptedTimeSeriesModel)
     
-    # Save results to CSV file
-    impact_results.to_csv(output_path, index=False)
+    # Load modeling configuration
+    modeling_engine.load_config(config_path)
     
-    return output_path
-
-
-def _perform_impact_analysis(business_metrics: pd.DataFrame) -> pd.DataFrame:
-    """Perform impact analysis on the retrieved business metrics."""
+    # Extract intervention date from configuration
+    model_config = config.get("model", {})
+    intervention_date = model_config.get("parameters", {}).get("intervention_date")
+    dependent_variable = model_config.get("parameters", {}).get("dependent_variable", "revenue")
     
-    if business_metrics.empty:
-        return business_metrics
+    if not intervention_date:
+        raise ValueError("intervention_date must be specified in model configuration parameters")
     
-    # Add some basic analysis columns as an example
-    analysis_results = business_metrics.copy()
+    # Create output directory if it doesn't exist
+    output_dir = Path(output_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Example: Add a simple impact score based on revenue and sales volume
-    if 'revenue' in analysis_results.columns and 'sales_volume' in analysis_results.columns:
-        max_revenue = analysis_results['revenue'].max() if analysis_results['revenue'].max() > 0 else 1
-        max_sales = analysis_results['sales_volume'].max() if analysis_results['sales_volume'].max() > 0 else 1
-        
-        analysis_results['impact_score'] = (
-            (analysis_results['revenue'] / max_revenue * 0.7) +
-            (analysis_results['sales_volume'] / max_sales * 0.3)
-        ).round(3)
+    # Fit model using modeling engine
+    model_results_path = modeling_engine.fit_model(
+        data=business_metrics,
+        intervention_date=intervention_date,
+        output_path=str(output_dir),
+        dependent_variable=dependent_variable
+    )
     
-    return analysis_results
+    return model_results_path
