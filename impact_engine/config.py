@@ -166,24 +166,18 @@ class ConfigurationParser:
     
     def _validate_data_source_config(self, data_source_config: Dict[str, Any]) -> None:
         """Validate data source configuration."""
-        # Validate data source type
+        # Validate data source type exists and is a string
         source_type = data_source_config["type"]
-        if source_type not in self.VALID_DATA_SOURCE_TYPES:
-            raise ConfigurationError(
-                f"Invalid data source type '{source_type}'. "
-                f"Valid types: {', '.join(self.VALID_DATA_SOURCE_TYPES)}"
-            )
+        if not isinstance(source_type, str) or not source_type.strip():
+            raise ConfigurationError("Data source type must be a non-empty string")
         
         # Validate connection configuration exists
         connection_config = data_source_config["connection"]
         if not isinstance(connection_config, dict):
             raise ConfigurationError("Data source connection configuration must be an object")
         
-        # Validate source-specific connection parameters
-        if source_type == "simulator":
-            self._validate_simulator_connection(connection_config)
-        elif source_type == "company_system":
-            self._validate_company_system_connection(connection_config)
+        # Note: Source-specific validation is now handled by the data source implementations
+        # This allows for flexible registration of external data sources
     
     def _validate_simulator_connection(self, connection_config: Dict[str, Any]) -> None:
         """Validate simulator-specific connection configuration."""
