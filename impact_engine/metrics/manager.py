@@ -5,7 +5,7 @@ Metrics Manager for coordinating metrics operations.
 import pandas as pd
 from typing import Dict, List, Any, Optional
 
-from .base import MetricsInterface, TimeRange
+from .base import MetricsInterface
 from .adapter_catalog_simulator import CatalogSimulatorAdapter
 from ..config import ConfigurationParser
 

@@ -1,5 +1,5 @@
 from .run_impact_analysis import evaluate_impact
-from .metrics import MetricsInterface, MetricsNotFoundError, MetricsManager, TimeRange, CatalogSimulatorAdapter
+from .metrics import MetricsInterface, MetricsManager, CatalogSimulatorAdapter
 from .models import Model, ModelsManager, InterruptedTimeSeriesAdapter
 from .config import ConfigurationParser, ConfigurationError, parse_config_file
 """
@@ -14,9 +14,7 @@ __author__ = "Impact Engine Team"
 __all__ = [
     "evaluate_impact",
     "MetricsInterface",
-    "MetricsNotFoundError", 
     "MetricsManager",
-    "TimeRange",
     "CatalogSimulatorAdapter",
     "Model",
     "ModelsManager",

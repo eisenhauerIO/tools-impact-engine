@@ -6,7 +6,7 @@ import pandas as pd
 from typing import Dict, List, Any
 from datetime import datetime
 
-from .base import MetricsInterface, MetricsNotFoundError
+from .base import MetricsInterface
 
 
 class CatalogSimulatorAdapter(MetricsInterface):
@@ -48,53 +48,23 @@ class CatalogSimulatorAdapter(MetricsInterface):
             import json
             import os
             
-            # Use the provided DataFrame directly
-            product_characteristics = products.copy()
-            
-            # Ensure required columns exist
-            if 'product_id' not in product_characteristics.columns:
-                # Try to find a suitable ID column
-                id_columns = [col for col in product_characteristics.columns 
-                            if 'id' in col.lower() or col.lower() in ['product', 'sku', 'code']]
-                if id_columns:
-                    product_characteristics['product_id'] = product_characteristics[id_columns[0]]
-                else:
-                    # If no ID column found, create one from the index
-                    product_characteristics['product_id'] = product_characteristics.index.astype(str)
-            
-            # Add default values for missing required columns
-            if 'name' not in product_characteristics.columns:
-                product_characteristics['name'] = product_characteristics['product_id'].apply(lambda x: f'Product {x}')
-            if 'category' not in product_characteristics.columns:
-                product_characteristics['category'] = 'Electronics'  # Default category
-            if 'price' not in product_characteristics.columns:
-                product_characteristics['price'] = 100.0  # Default price
-            
-            # Create config dict for simulator
-            simulator_config = {
-                "SIMULATOR": {"mode": self.config['mode']},
-                "SEED": self.config['seed'],
-                "RULE": {
-                    "DATE_START": start_date,
-                    "DATE_END": end_date,
-                    "SALE_PROB": 0.7
-                }
-            }
+            # Transform input to simulator format
+            transformed_input = self.transform_outbound(products, start_date, end_date)
             
             # Create temporary config file
             with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                json.dump(simulator_config, f)
+                json.dump(transformed_input["simulator_config"], f)
                 temp_config_path = f.name
             
             try:
                 # Generate metrics using the simulator
                 raw_metrics = simulate_metrics(
-                    product_characteristics=product_characteristics,
+                    product_characteristics=transformed_input["product_characteristics"],
                     config_path=temp_config_path
                 )
                 
-                # Transform to standardized schema
-                return self._transform_to_standard_schema(raw_metrics)
+                # Transform response to impact engine format
+                return self.transform_inbound(raw_metrics)
                 
             finally:
                 # Clean up temporary config file
@@ -108,8 +78,66 @@ class CatalogSimulatorAdapter(MetricsInterface):
         except Exception as e:
             raise RuntimeError(f"Failed to retrieve metrics: {e}")
     
-    def _transform_to_standard_schema(self, raw_metrics: pd.DataFrame) -> pd.DataFrame:
-        """Transform simulator output to standardized business metrics schema."""
+
+    
+    def validate_connection(self) -> bool:
+        """Validate that the catalog simulator connection is active and functional."""
+        if not self.is_connected:
+            return False
+        
+        try:
+            from online_retail_simulator import simulate_metrics
+            return True
+        except ImportError:
+            return False
+    
+    def transform_outbound(self, products: pd.DataFrame, start_date: str, end_date: str) -> Dict[str, Any]:
+        """Transform impact engine format to catalog simulator format."""
+        # Prepare products DataFrame for simulator
+        product_characteristics = products.copy()
+        
+        # Ensure required columns exist
+        if 'product_id' not in product_characteristics.columns:
+            # Try to find a suitable ID column
+            id_columns = [col for col in product_characteristics.columns 
+                        if 'id' in col.lower() or col.lower() in ['product', 'sku', 'code']]
+            if id_columns:
+                product_characteristics['product_id'] = product_characteristics[id_columns[0]]
+            else:
+                # If no ID column found, create one from the index
+                product_characteristics['product_id'] = product_characteristics.index.astype(str)
+        
+        # Add default values for missing required columns
+        if 'name' not in product_characteristics.columns:
+            product_characteristics['name'] = product_characteristics['product_id'].apply(lambda x: f'Product {x}')
+        if 'category' not in product_characteristics.columns:
+            product_characteristics['category'] = 'Electronics'  # Default category
+        if 'price' not in product_characteristics.columns:
+            product_characteristics['price'] = 100.0  # Default price
+        
+        # Create simulator configuration
+        simulator_config = {
+            "SIMULATOR": {"mode": self.config['mode']},
+            "SEED": self.config['seed'],
+            "RULE": {
+                "DATE_START": start_date,
+                "DATE_END": end_date,
+                "SALE_PROB": 0.7
+            }
+        }
+        
+        return {
+            "product_characteristics": product_characteristics,
+            "simulator_config": simulator_config
+        }
+    
+    def transform_inbound(self, external_data: Any) -> pd.DataFrame:
+        """Transform catalog simulator response to impact engine format."""
+        if not isinstance(external_data, pd.DataFrame):
+            raise ValueError("Expected pandas DataFrame from catalog simulator")
+        
+        raw_metrics = external_data
+        
         if raw_metrics.empty:
             return pd.DataFrame(columns=[
                 'product_id', 'name', 'category', 'price', 'date',
@@ -163,15 +191,4 @@ class CatalogSimulatorAdapter(MetricsInterface):
         ]
         available_columns = [col for col in column_order if col in standardized.columns]
         return standardized[available_columns]
-    
-    def validate_connection(self) -> bool:
-        """Validate that the catalog simulator connection is active and functional."""
-        if not self.is_connected:
-            return False
-        
-        try:
-            from online_retail_simulator import simulate_metrics
-            return True
-        except ImportError:
-            return False
     

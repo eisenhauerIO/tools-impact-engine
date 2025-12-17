@@ -5,8 +5,6 @@ Base interfaces and common classes for the metrics layer.
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any
 import pandas as pd
-from datetime import datetime
-from dataclasses import dataclass
 
 
 class MetricsInterface(ABC):
@@ -36,35 +34,35 @@ class MetricsInterface(ABC):
         """Validate that the metrics source connection is active and functional."""
         pass
     
-
-
-
-class MetricsNotFoundError(Exception):
-    """Exception raised when no metrics are found for the specified criteria."""
-    pass
-
-
-@dataclass
-class TimeRange:
-    """Data class representing a time range for metrics retrieval."""
-    start_date: datetime
-    end_date: datetime
-    
-    def validate(self) -> bool:
-        """Validate that the time range is logically consistent."""
-        return self.start_date <= self.end_date
-    
-    @classmethod
-    def from_strings(cls, start_date_str: str, end_date_str: str) -> 'TimeRange':
-        """Create TimeRange from string dates."""
-        try:
-            start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
-            end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
-        except ValueError as e:
-            raise ValueError(f"Invalid date format. Expected YYYY-MM-DD: {e}")
+    @abstractmethod
+    def transform_outbound(self, products: pd.DataFrame, start_date: str, end_date: str) -> Dict[str, Any]:
+        """Transform impact engine format to external system format.
         
-        time_range = cls(start_date, end_date)
-        if not time_range.validate():
-            raise ValueError(f"Invalid time range: start_date ({start_date_str}) must be <= end_date ({end_date_str})")
+        Args:
+            products: DataFrame with product identifiers and characteristics
+            start_date: Start date in YYYY-MM-DD format
+            end_date: End date in YYYY-MM-DD format
+            
+        Returns:
+            Dictionary with parameters formatted for the external system
+        """
+        pass
+    
+    @abstractmethod
+    def transform_inbound(self, external_data: Any) -> pd.DataFrame:
+        """Transform external system response to impact engine format.
         
-        return time_range
+        Args:
+            external_data: Raw data from the external system
+            
+        Returns:
+            DataFrame with standardized business metrics format
+        """
+        pass
+    
+
+
+
+
+
+
