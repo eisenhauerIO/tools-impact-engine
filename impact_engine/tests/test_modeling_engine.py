@@ -84,7 +84,9 @@ class TestModelingEngineConfiguration:
                 "DATA": {
                     "TYPE": "simulator",
                     "MODE": "rule",
-                    "SEED": 42
+                    "SEED": 42,
+                    "START_DATE": "2024-01-01",
+                    "END_DATE": "2024-01-31"
                 },
                 "MEASUREMENT": {
                     "MODEL": "mock",
@@ -121,7 +123,9 @@ class TestModelingEngineConfiguration:
                 "DATA": {
                     "TYPE": "simulator",
                     "MODE": "rule",
-                    "SEED": 42
+                    "SEED": 42,
+                    "START_DATE": "2024-01-01",
+                    "END_DATE": "2024-01-31"
                 },
                 "MEASUREMENT": {
                     "MODEL": "mock",
@@ -164,7 +168,9 @@ class TestModelingEngineGetModel:
                 "DATA": {
                     "TYPE": "simulator",
                     "MODE": "rule",
-                    "SEED": 42
+                    "SEED": 42,
+                    "START_DATE": "2024-01-01",
+                    "END_DATE": "2024-01-31"
                 },
                 "MEASUREMENT": {
                     "MODEL": "mock",
@@ -267,7 +273,9 @@ class TestModelingEngineFitModel:
                 "DATA": {
                     "TYPE": "simulator",
                     "MODE": "rule",
-                    "SEED": 42
+                    "SEED": 42,
+                    "START_DATE": "2024-01-01",
+                    "END_DATE": "2024-01-31"
                 },
                 "MEASUREMENT": {
                     "MODEL": "mock",

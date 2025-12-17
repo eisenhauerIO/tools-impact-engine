@@ -59,6 +59,25 @@ class ConfigurationParser:
         if "TYPE" not in data:
             raise ConfigurationError("Missing required field 'TYPE' in DATA section")
         
+        if "START_DATE" not in data:
+            raise ConfigurationError("Missing required field 'START_DATE' in DATA section")
+        
+        if "END_DATE" not in data:
+            raise ConfigurationError("Missing required field 'END_DATE' in DATA section")
+        
+        # Validate DATA section date format
+        try:
+            data_start_date = datetime.strptime(data["START_DATE"], "%Y-%m-%d")
+            data_end_date = datetime.strptime(data["END_DATE"], "%Y-%m-%d")
+        except ValueError as e:
+            raise ConfigurationError(f"Invalid date format in DATA section. Expected YYYY-MM-DD: {e}")
+        
+        # Validate DATA section date consistency
+        if data_start_date > data_end_date:
+            raise ConfigurationError(
+                f"DATA START_DATE ({data['START_DATE']}) must be before or equal to END_DATE ({data['END_DATE']})"
+            )
+        
         # Validate measurement section
         measurement = config["MEASUREMENT"]
         if "MODEL" not in measurement:

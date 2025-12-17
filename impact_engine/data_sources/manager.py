@@ -59,30 +59,20 @@ class DataSourceManager:
         
         return data_source
     
-    def retrieve_metrics(
-        self, 
-        products: List[str], 
-        time_range: Optional[TimeRange] = None,
-        data_source: Optional[DataSourceInterface] = None
-    ) -> pd.DataFrame:
-        """Retrieve business metrics for specified products and time range."""
-        if not products:
-            raise ValueError("Products list cannot be empty")
+    def retrieve_metrics(self, products: List[str]) -> pd.DataFrame:
+        """Retrieve business metrics for specified products using DATA section date range."""
+        # Get date range from DATA section
+        data_config = self.current_config["DATA"]
+        start_date = data_config["START_DATE"]
+        end_date = data_config["END_DATE"]
         
-        if time_range is None:
-            if self.current_config is None:
-                raise ValueError("No configuration loaded. Provide time_range or call load_config() first.")
-            # Get time_range from measurement params (new format)
-            params = self.current_config["MEASUREMENT"]["PARAMS"]
-            time_range = TimeRange.from_strings(params["START_DATE"], params["END_DATE"])
-        
-        if data_source is None:
-            data_source = self.get_data_source()
+        # Get data source
+        data_source = self.get_data_source()
         
         return data_source.retrieve_business_metrics(
             products=products,
-            start_date=time_range.start_date.strftime("%Y-%m-%d"),
-            end_date=time_range.end_date.strftime("%Y-%m-%d")
+            start_date=start_date,
+            end_date=end_date
         )
     
     def get_available_data_sources(self) -> List[str]:

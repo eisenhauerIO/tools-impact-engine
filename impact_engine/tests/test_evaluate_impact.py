@@ -20,7 +20,9 @@ class TestEvaluateImpactIntegration:
                 "DATA": {
                     "TYPE": "simulator",
                     "MODE": "rule",
-                    "SEED": 42
+                    "SEED": 42,
+                    "START_DATE": "2024-01-01",
+                    "END_DATE": "2024-01-31"
                 },
                 "MEASUREMENT": {
                     "MODEL": "interrupted_time_series",
@@ -76,7 +78,9 @@ class TestEvaluateImpactIntegration:
                 "DATA": {
                     "TYPE": "simulator",
                     "MODE": "rule",
-                    "SEED": 42
+                    "SEED": 42,
+                    "START_DATE": "2024-01-01",
+                    "END_DATE": "2024-01-31"
                 },
                 "MEASUREMENT": {
                     "MODEL": "interrupted_time_series",
@@ -109,7 +113,9 @@ class TestEvaluateImpactIntegration:
                 "DATA": {
                     "TYPE": "simulator",
                     "MODE": "rule",
-                    "SEED": 42
+                    "SEED": 42,
+                    "START_DATE": "2024-01-01",
+                    "END_DATE": "2024-01-31"
                 },
                 "MEASUREMENT": {
                     "MODEL": "interrupted_time_series",

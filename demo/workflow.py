@@ -8,7 +8,7 @@ from impact_engine import evaluate_impact
 
 if __name__ == "__main__":
 	
-	config_path = "config_simulator.yaml"
+	config_path = "config_catalog_simulator.yaml"
 	products_df = simulate_characteristics(config_path)
 	
 

@@ -5,6 +5,8 @@ DATA:
   TYPE: simulator
   MODE: rule
   SEED: 42
+  START_DATE: "2024-11-01"
+  END_DATE: "2024-11-30"
 
 MEASUREMENT:
   MODEL: interrupted_time_series
