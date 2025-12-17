@@ -51,16 +51,17 @@ class TestEvaluateImpactIntegration:
                 result_path = evaluate_impact(
                     config_path=config_path,
                     products=products_df,
-                    output_path=tmpdir
+                    storage_url=tmpdir
                 )
                 
-                # Verify result file exists
-                assert Path(result_path).exists()
+                # Verify result URL format
+                assert result_path.startswith("file://")
                 assert result_path.endswith('.json')
                 
-                # Verify result file contains valid JSON with model results
-                with open(result_path, 'r') as f:
-                    result_data = json.load(f)
+                # Load result data using storage backend to verify it exists
+                from impact_engine.storage import create_storage
+                storage = create_storage(tmpdir)
+                result_data = storage.load_json("results/impact_results.json", "default")
                 
                 # Verify model output structure
                 assert result_data["model_type"] == "interrupted_time_series"
@@ -117,7 +118,7 @@ class TestEvaluateImpactIntegration:
                     evaluate_impact(
                         config_path=config_path,
                         products=products_df,
-                        output_path=tmpdir
+                        storage_url=tmpdir
                     )
         finally:
             Path(config_path).unlink()
@@ -159,7 +160,7 @@ class TestEvaluateImpactIntegration:
                 result_path = evaluate_impact(
                     config_path=config_path,
                     products=products_df,
-                    output_path=tmpdir
+                    storage_url=tmpdir
                 )
                 
                 # Verify result is a JSON file (model results), not CSV
@@ -209,16 +210,17 @@ class TestEvaluateImpactIntegration:
                 result_path = evaluate_impact(
                     config_path=config_path,
                     products=products_df,
-                    output_path=tmpdir
+                    storage_url=tmpdir
                 )
                 
-                # Verify result file exists and is valid
-                assert Path(result_path).exists()
+                # Verify result URL format
+                assert result_path.startswith("file://")
                 assert result_path.endswith('.json')
                 
-                # Verify result file contains valid JSON with model results
-                with open(result_path, 'r') as f:
-                    result_data = json.load(f)
+                # Load result data using storage backend to verify it exists
+                from impact_engine.storage import create_storage
+                storage = create_storage(tmpdir)
+                result_data = storage.load_json("results/impact_results.json", "default")
                 
                 # Verify model output structure
                 assert result_data["model_type"] == "interrupted_time_series"

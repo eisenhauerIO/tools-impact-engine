@@ -7,10 +7,28 @@ import json
 from pathlib import Path
 
 from impact_engine.models import InterruptedTimeSeriesAdapter
+from impact_engine.storage import create_storage
 
 
 class TestInterruptedTimeSeriesAdapter:
     """Tests for InterruptedTimeSeriesAdapter functionality."""
+    
+    def _setup_model_with_storage(self, tmpdir):
+        """Helper method to set up model with storage backend."""
+        model = InterruptedTimeSeriesAdapter()
+        config = {
+            'order': (1, 0, 0),
+            'seasonal_order': (0, 0, 0, 0),
+            'dependent_variable': 'revenue'
+        }
+        model.connect(config)
+        
+        # Set up storage
+        storage = create_storage(tmpdir)
+        model.storage = storage
+        model.tenant_id = "test_tenant"
+        
+        return model
     
     def test_connect_success(self):
         """Test successful model connection."""
@@ -134,11 +152,11 @@ class TestInterruptedTimeSeriesAdapter:
         with pytest.raises(ConnectionError, match="Model not connected"):
             model.fit(data, "2024-01-05", "/tmp")
     
-    def test_fit_result_file_creation(self):
-        """Test that ITS model creates result file at specified path."""
+    def test_fit_no_storage(self):
+        """Test fitting without storage backend."""
         model = InterruptedTimeSeriesAdapter()
         
-        # Connect the model first
+        # Connect the model but don't set storage
         config = {
             'order': (1, 0, 0),
             'seasonal_order': (0, 0, 0, 0),
@@ -146,6 +164,16 @@ class TestInterruptedTimeSeriesAdapter:
         }
         model.connect(config)
         
+        data = pd.DataFrame({
+            'date': pd.date_range('2024-01-01', periods=10),
+            'revenue': range(10)
+        })
+        
+        with pytest.raises(RuntimeError, match="Storage backend is required"):
+            model.fit(data, "2024-01-05", "results")
+    
+    def test_fit_result_file_creation(self):
+        """Test that ITS model creates result file at specified path."""
         # Create sample time series data
         data = pd.DataFrame({
             'date': pd.date_range('2024-01-01', periods=30),
@@ -153,45 +181,38 @@ class TestInterruptedTimeSeriesAdapter:
         })
         
         with tempfile.TemporaryDirectory() as tmpdir:
+            model = self._setup_model_with_storage(tmpdir)
+            
             result_path = model.fit(
                 data=data,
                 intervention_date="2024-01-15",
-                output_path=tmpdir,
+                output_path="results",
                 dependent_variable="revenue"
             )
             
-            # Verify result file exists
-            assert Path(result_path).exists()
+            # Verify result URL format
+            assert result_path.startswith("file://")
             assert result_path.endswith('.json')
     
     def test_fit_result_file_content(self):
         """Test that ITS model saves valid JSON with required fields."""
-        model = InterruptedTimeSeriesAdapter()
-        
-        # Connect the model first
-        config = {
-            'order': (1, 0, 0),
-            'seasonal_order': (0, 0, 0, 0),
-            'dependent_variable': 'revenue'
-        }
-        model.connect(config)
-        
         data = pd.DataFrame({
             'date': pd.date_range('2024-01-01', periods=30),
             'revenue': [1000 + i * 10 for i in range(30)]
         })
         
         with tempfile.TemporaryDirectory() as tmpdir:
+            model = self._setup_model_with_storage(tmpdir)
+            
             result_path = model.fit(
                 data=data,
                 intervention_date="2024-01-15",
-                output_path=tmpdir,
+                output_path="results",
                 dependent_variable="revenue"
             )
             
-            # Load and verify JSON content
-            with open(result_path, 'r') as f:
-                result_data = json.load(f)
+            # Load and verify JSON content from storage
+            result_data = model.storage.load_json("results/impact_results.json", "test_tenant")
             
             # Verify required fields
             assert result_data["model_type"] == "interrupted_time_series"
@@ -202,31 +223,22 @@ class TestInterruptedTimeSeriesAdapter:
     
     def test_fit_impact_estimates_structure(self):
         """Test that impact estimates have correct structure."""
-        model = InterruptedTimeSeriesAdapter()
-        
-        # Connect the model first
-        config = {
-            'order': (1, 0, 0),
-            'seasonal_order': (0, 0, 0, 0),
-            'dependent_variable': 'revenue'
-        }
-        model.connect(config)
-        
         data = pd.DataFrame({
             'date': pd.date_range('2024-01-01', periods=30),
             'revenue': [1000 + i * 10 for i in range(30)]
         })
         
         with tempfile.TemporaryDirectory() as tmpdir:
+            model = self._setup_model_with_storage(tmpdir)
+            
             result_path = model.fit(
                 data=data,
                 intervention_date="2024-01-15",
-                output_path=tmpdir,
+                output_path="results",
                 dependent_variable="revenue"
             )
             
-            with open(result_path, 'r') as f:
-                result_data = json.load(f)
+            result_data = model.storage.load_json("results/impact_results.json", "test_tenant")
             
             impact_estimates = result_data["impact_estimates"]
             
@@ -244,31 +256,22 @@ class TestInterruptedTimeSeriesAdapter:
     
     def test_fit_model_summary_structure(self):
         """Test that model summary has correct structure."""
-        model = InterruptedTimeSeriesAdapter()
-        
-        # Connect the model first
-        config = {
-            'order': (1, 0, 0),
-            'seasonal_order': (0, 0, 0, 0),
-            'dependent_variable': 'revenue'
-        }
-        model.connect(config)
-        
         data = pd.DataFrame({
             'date': pd.date_range('2024-01-01', periods=30),
             'revenue': [1000 + i * 10 for i in range(30)]
         })
         
         with tempfile.TemporaryDirectory() as tmpdir:
+            model = self._setup_model_with_storage(tmpdir)
+            
             result_path = model.fit(
                 data=data,
                 intervention_date="2024-01-15",
-                output_path=tmpdir,
+                output_path="results",
                 dependent_variable="revenue"
             )
             
-            with open(result_path, 'r') as f:
-                result_data = json.load(f)
+            result_data = model.storage.load_json("results/impact_results.json", "test_tenant")
             
             model_summary = result_data["model_summary"]
             
@@ -285,39 +288,29 @@ class TestInterruptedTimeSeriesAdapter:
             assert model_summary["post_period_length"] == 16  # 2024-01-15 to 2024-01-30
     
     def test_fit_returns_file_path(self):
-        """Test that fit method returns the correct file path."""
-        model = InterruptedTimeSeriesAdapter()
-        
-        # Connect the model first
-        config = {
-            'order': (1, 0, 0),
-            'seasonal_order': (0, 0, 0, 0),
-            'dependent_variable': 'revenue'
-        }
-        model.connect(config)
-        
+        """Test that fit method returns the correct storage URL."""
         data = pd.DataFrame({
             'date': pd.date_range('2024-01-01', periods=30),
             'revenue': [1000 + i * 10 for i in range(30)]
         })
         
         with tempfile.TemporaryDirectory() as tmpdir:
+            model = self._setup_model_with_storage(tmpdir)
+            
             result_path = model.fit(
                 data=data,
                 intervention_date="2024-01-15",
-                output_path=tmpdir,
+                output_path="results",
                 dependent_variable="revenue"
             )
             
             # Verify path is a string
             assert isinstance(result_path, str)
             
-            # Verify path points to existing file
-            assert Path(result_path).exists()
-            assert Path(result_path).is_file()
-            
-            # Verify path is in the output directory
-            assert tmpdir in result_path
+            # Verify it's a proper storage URL
+            assert result_path.startswith("file://")
+            assert "test_tenant" in result_path
+            assert "results/impact_results.json" in result_path
     
     def test_validate_data_success(self):
         """Test successful data validation."""

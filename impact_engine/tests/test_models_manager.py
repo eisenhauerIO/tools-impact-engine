@@ -17,6 +17,8 @@ class MockModel(Model):
     def __init__(self):
         self.is_connected = False
         self.config = None
+        self.storage = None
+        self.tenant_id = "default"
     
     def connect(self, config):
         """Mock connect method."""
@@ -47,20 +49,20 @@ class MockModel(Model):
         """Mock fit method."""
         if not self.is_connected:
             raise ConnectionError("Model not connected. Call connect() first.")
-            
-        result_file = Path(output_path) / "mock_results.json"
-        result_file.parent.mkdir(parents=True, exist_ok=True)
         
+        if not self.storage:
+            raise ValueError("Storage backend is required but not configured")
+            
         result_data = {
             "model_type": "mock",
             "intervention_date": intervention_date,
             "rows_processed": len(data)
         }
         
-        with open(result_file, 'w') as f:
-            json.dump(result_data, f)
+        result_path = f"{output_path}/mock_results.json"
+        stored_path = self.storage.store_json(result_path, result_data, self.tenant_id)
         
-        return str(result_file)
+        return stored_path
     
     def validate_data(self, data: pd.DataFrame) -> bool:
         """Mock validate_data method."""
@@ -241,6 +243,8 @@ class TestModelsManagerFitModel:
     
     def test_fit_model_success(self):
         """Test successful model fitting."""
+        from impact_engine.storage import create_storage
+        
         engine = ModelsManager()
         engine.register_model("mock", MockModel)
         
@@ -250,35 +254,45 @@ class TestModelsManagerFitModel:
         })
         
         with tempfile.TemporaryDirectory() as tmpdir:
+            storage = create_storage(tmpdir)
             result_path = engine.fit_model(
                 data=data,
                 intervention_date="2024-01-05",
-                output_path=tmpdir,
-                model_type="mock"
+                output_path="results",
+                model_type="mock",
+                storage=storage,
+                tenant_id="test_tenant"
             )
             
-            assert Path(result_path).exists()
+            assert result_path.startswith("file://")
             assert result_path.endswith('.json')
     
     def test_fit_model_empty_data(self):
         """Test fitting with empty data."""
+        from impact_engine.storage import create_storage
+        
         engine = ModelsManager()
         engine.register_model("mock", MockModel)
         
         data = pd.DataFrame()
         
         with tempfile.TemporaryDirectory() as tmpdir:
+            storage = create_storage(tmpdir)
             # Should work with empty data since MockModel handles it
             result = engine.fit_model(
                 data=data,
                 intervention_date="2024-01-05",
-                output_path=tmpdir,
-                model_type="mock"
+                output_path="results",
+                model_type="mock",
+                storage=storage,
+                tenant_id="test_tenant"
             )
             assert result is not None
     
     def test_fit_model_invalid_data(self):
         """Test fitting with invalid data."""
+        from impact_engine.storage import create_storage
+        
         engine = ModelsManager()
         engine.register_model("mock", MockModel)
         
@@ -286,12 +300,15 @@ class TestModelsManagerFitModel:
         data = pd.DataFrame({'value': range(10)})
         
         with tempfile.TemporaryDirectory() as tmpdir:
+            storage = create_storage(tmpdir)
             # Should work since MockModel handles any data
             result = engine.fit_model(
                 data=data,
                 intervention_date="2024-01-05",
-                output_path=tmpdir,
-                model_type="mock"
+                output_path="results",
+                model_type="mock",
+                storage=storage,
+                tenant_id="test_tenant"
             )
             assert result is not None
     
@@ -330,13 +347,18 @@ class TestModelsManagerFitModel:
             })
             
             with tempfile.TemporaryDirectory() as tmpdir:
+                from impact_engine.storage import create_storage
+                storage = create_storage(tmpdir)
+                
                 result_path = engine.fit_model(
                     data=data,
                     intervention_date="2024-01-05",
-                    output_path=tmpdir
+                    output_path="results",
+                    storage=storage,
+                    tenant_id="test_tenant"
                 )
                 
-                assert Path(result_path).exists()
+                assert result_path.startswith("file://")
         finally:
             Path(config_path).unlink()
 
@@ -361,11 +383,16 @@ class TestModelsManagerStatistics:
         })
         
         with tempfile.TemporaryDirectory() as tmpdir:
+            from impact_engine.storage import create_storage
+            storage = create_storage(tmpdir)
+            
             result = engine.fit_model(
                 data=data,
                 intervention_date="2024-01-05",
-                output_path=tmpdir,
-                model_type="mock"
+                output_path="results",
+                model_type="mock",
+                storage=storage,
+                tenant_id="test_tenant"
             )
             assert result is not None
     

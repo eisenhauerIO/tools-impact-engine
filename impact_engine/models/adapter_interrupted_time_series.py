@@ -36,6 +36,8 @@ class InterruptedTimeSeriesAdapter(Model):
         self.dependent_variable = None
         self.is_connected = False
         self.config = None
+        self.storage = None
+        self.tenant_id = "default"
     
     def connect(self, config: Dict[str, Any]) -> bool:
         """Initialize model with configuration parameters."""
@@ -137,17 +139,14 @@ class InterruptedTimeSeriesAdapter(Model):
             # Transform results to impact engine format
             standardized_results = self.transform_inbound(self.results)
             
-            # Save results to file
-            output_dir = Path(output_path)
-            output_dir.mkdir(parents=True, exist_ok=True)
+            # Save results using storage backend
+            if not self.storage:
+                raise ValueError("Storage backend is required but not configured")
             
-            result_file = output_dir / "impact_results.json"
-            with open(result_file, 'w') as f:
-                json.dump(standardized_results, f, indent=2)
-            
-            self.logger.info(f"Model results saved to {result_file}")
-            
-            return str(result_file)
+            result_path = f"{output_path}/impact_results.json"
+            stored_path = self.storage.store_json(result_path, standardized_results, self.tenant_id)
+            self.logger.info(f"Model results saved to {stored_path}")
+            return stored_path
             
         except Exception as e:
             self.logger.error(f"Error fitting InterruptedTimeSeriesAdapter: {e}")

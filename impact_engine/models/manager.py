@@ -74,7 +74,9 @@ class ModelsManager:
         intervention_date: Optional[str] = None,
         output_path: str = ".",
         dependent_variable: Optional[str] = None,
-        model_type: Optional[str] = None
+        model_type: Optional[str] = None,
+        storage = None,
+        tenant_id: str = "default"
     ) -> str:
         """Fit model using configuration parameters."""
         # Get parameters from config if not provided
@@ -92,15 +94,19 @@ class ModelsManager:
         # Get model
         model = self.get_model(model_type)
         
-        # Create output directory
-        output_dir = Path(output_path)
-        output_dir.mkdir(parents=True, exist_ok=True)
+        # Storage backend is required
+        if not storage:
+            raise ValueError("Storage backend is required but not provided")
+        
+        # Set storage and tenant_id on model
+        model.storage = storage
+        model.tenant_id = tenant_id
         
         # Fit model
         return model.fit(
             data=data,
             intervention_date=intervention_date,
-            output_path=str(output_dir),
+            output_path=output_path,
             dependent_variable=dependent_variable
         )
     
