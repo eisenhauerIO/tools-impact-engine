@@ -6,23 +6,32 @@ import pandas as pd
 from typing import Dict, List, Any, Optional
 
 from .base import DataSourceInterface, TimeRange
-from .simulator import SimulatorDataSource
+from .interface_catalog_simulator import CatalogSimulatorInterface
 from ..config import ConfigurationParser
 
 
 class DataSourceManager:
     """Central coordinator for data source management."""
     
-    def __init__(self):
-        """Initialize the DataSourceManager."""
-        self.config_parser = ConfigurationParser()
+    def __init__(self, data_config: Dict[str, Any]):
+        """Initialize the DataSourceManager with DATA configuration block."""
         self.data_source_registry: Dict[str, type] = {}
-        self.current_config: Optional[Dict[str, Any]] = None
+        self.data_config = data_config
         self._register_builtin_data_sources()
+        
+        # Validate the data config
+        self._validate_data_config(data_config)
+    
+    @classmethod
+    def from_config_file(cls, config_path: str) -> 'DataSourceManager':
+        """Create DataSourceManager from config file, extracting DATA block."""
+        config_parser = ConfigurationParser()
+        full_config = config_parser.parse_config(config_path)
+        return cls(full_config["DATA"])
     
     def _register_builtin_data_sources(self) -> None:
         """Register built-in data source implementations."""
-        self.register_data_source("simulator", SimulatorDataSource)
+        self.register_data_source("simulator", CatalogSimulatorInterface)
     
     def register_data_source(self, source_type: str, source_class: type) -> None:
         """Register a new data source implementation."""
@@ -30,41 +39,53 @@ class DataSourceManager:
             raise ValueError(f"Data source class {source_class.__name__} must implement DataSourceInterface")
         self.data_source_registry[source_type] = source_class
     
-    def load_config(self, config_path: str) -> Dict[str, Any]:
-        """Load and validate configuration from file."""
-        self.current_config = self.config_parser.parse_config(config_path)
-        return self.current_config
+    def _validate_data_config(self, data_config: Dict[str, Any]) -> None:
+        """Validate DATA configuration block."""
+        required_fields = ["TYPE", "START_DATE", "END_DATE"]
+        for field in required_fields:
+            if field not in data_config:
+                raise ValueError(f"Missing required field '{field}' in DATA configuration")
+        
+        # Validate date format
+        from datetime import datetime
+        try:
+            start_date = datetime.strptime(data_config["START_DATE"], "%Y-%m-%d")
+            end_date = datetime.strptime(data_config["END_DATE"], "%Y-%m-%d")
+        except ValueError as e:
+            raise ValueError(f"Invalid date format in DATA configuration. Expected YYYY-MM-DD: {e}")
+        
+        # Validate date consistency
+        if start_date > end_date:
+            raise ValueError(f"START_DATE must be before or equal to END_DATE in DATA configuration")
     
     def get_data_source(self, source_type: Optional[str] = None) -> DataSourceInterface:
         """Get data source implementation based on configuration or specified type."""
         if source_type is None:
-            if self.current_config is None:
-                raise ValueError("No configuration loaded. Call load_config() first or provide source_type.")
-            source_type = self.current_config["DATA"]["TYPE"]
+            source_type = self.data_config["TYPE"]
         
         if source_type not in self.data_source_registry:
             raise ValueError(f"Unknown data source type '{source_type}'. Available: {list(self.data_source_registry.keys())}")
         
         data_source = self.data_source_registry[source_type]()
         
-        if self.current_config is not None:
-            # Build connection config from DATA section
-            data_config = self.current_config["DATA"]
-            connection_config = {
-                "mode": data_config.get("MODE", "rule"),
-                "seed": data_config.get("SEED", 42)
-            }
-            if not data_source.connect(connection_config):
-                raise ConnectionError(f"Failed to connect to {source_type} data source")
+        # Build connection config from DATA configuration
+        connection_config = {
+            "mode": self.data_config.get("MODE", "rule"),
+            "seed": self.data_config.get("SEED", 42)
+        }
+        if not data_source.connect(connection_config):
+            raise ConnectionError(f"Failed to connect to {source_type} data source")
         
         return data_source
     
     def retrieve_metrics(self, products: List[str]) -> pd.DataFrame:
-        """Retrieve business metrics for specified products using DATA section date range."""
-        # Get date range from DATA section
-        data_config = self.current_config["DATA"]
-        start_date = data_config["START_DATE"]
-        end_date = data_config["END_DATE"]
+        """Retrieve business metrics for specified products using DATA configuration date range."""
+        if not products:
+            raise ValueError("Products list cannot be empty")
+        
+        # Get date range from DATA configuration
+        start_date = self.data_config["START_DATE"]
+        end_date = self.data_config["END_DATE"]
         
         # Get data source
         data_source = self.get_data_source()
@@ -74,6 +95,10 @@ class DataSourceManager:
             start_date=start_date,
             end_date=end_date
         )
+    
+    def get_available_data_sources(self) -> List[str]:
+        """Get list of available data source types."""
+        return list(self.data_source_registry.keys())
     
     def get_available_data_sources(self) -> List[str]:
         """Get list of available data source types."""

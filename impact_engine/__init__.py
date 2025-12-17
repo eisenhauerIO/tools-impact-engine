@@ -1,5 +1,5 @@
 from .run_impact_analysis import evaluate_impact
-from .data_sources import DataSourceInterface, DataNotFoundError, DataSourceManager, TimeRange, SimulatorDataSource
+from .data_sources import DataSourceInterface, DataNotFoundError, DataSourceManager, TimeRange, CatalogSimulatorInterface
 from .config import ConfigurationParser, ConfigurationError, parse_config_file
 """
 Impact Engine - A tool for measuring causal impact of product interventions.
@@ -16,7 +16,7 @@ __all__ = [
     "DataNotFoundError",
     "DataSourceManager",
     "TimeRange",
-    "SimulatorDataSource",
+    "CatalogSimulatorInterface",
     "ConfigurationParser",
     "ConfigurationError",
     "parse_config_file",
