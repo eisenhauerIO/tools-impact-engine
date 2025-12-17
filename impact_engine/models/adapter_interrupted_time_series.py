@@ -5,7 +5,7 @@ import numpy as np
 import json
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 from datetime import datetime
 
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -34,6 +34,45 @@ class InterruptedTimeSeriesAdapter(Model):
         self.results = None
         self.intervention_date = None
         self.dependent_variable = None
+        self.is_connected = False
+        self.config = None
+    
+    def connect(self, config: Dict[str, Any]) -> bool:
+        """Initialize model with configuration parameters."""
+        # Validate order parameter
+        order = config.get('order', (1, 0, 0))
+        if not isinstance(order, tuple) or len(order) != 3:
+            raise ValueError("Order must be a tuple of 3 integers (p, d, q)")
+        
+        # Validate seasonal_order parameter
+        seasonal_order = config.get('seasonal_order', (0, 0, 0, 0))
+        if not isinstance(seasonal_order, tuple) or len(seasonal_order) != 4:
+            raise ValueError("Seasonal order must be a tuple of 4 integers (P, D, Q, s)")
+        
+        # Validate dependent_variable
+        dependent_variable = config.get('dependent_variable', 'revenue')
+        if not isinstance(dependent_variable, str):
+            raise ValueError("Dependent variable must be a string")
+        
+        self.config = {
+            'order': order,
+            'seasonal_order': seasonal_order,
+            'dependent_variable': dependent_variable
+        }
+        self.is_connected = True
+        return True
+    
+    def validate_connection(self) -> bool:
+        """Validate that the model is properly initialized and ready to use."""
+        if not self.is_connected:
+            return False
+        
+        try:
+            # Check if statsmodels is available
+            from statsmodels.tsa.statespace.sarimax import SARIMAX
+            return True
+        except ImportError:
+            return False
     
     def fit(
         self,
@@ -62,6 +101,9 @@ class InterruptedTimeSeriesAdapter(Model):
             ValueError: If data validation fails or required columns are missing.
             RuntimeError: If model fitting fails.
         """
+        if not self.is_connected:
+            raise ConnectionError("Model not connected. Call connect() first.")
+        
         try:
             # Validate input data
             if not self.validate_data(data):
@@ -69,67 +111,31 @@ class InterruptedTimeSeriesAdapter(Model):
                     f"Data validation failed. Required columns: {self.get_required_columns()}"
                 )
             
-            # Check if dependent variable exists
-            if dependent_variable not in data.columns:
-                raise ValueError(
-                    f"Dependent variable '{dependent_variable}' not found in data. "
-                    f"Available columns: {list(data.columns)}"
-                )
-            
-            self.dependent_variable = dependent_variable
-            self.intervention_date = intervention_date
-            
-            # Prepare data
-            df = data.copy()
-            df['date'] = pd.to_datetime(df['date'])
-            df = df.sort_values('date').reset_index(drop=True)
-            
-            # Create intervention dummy variable
-            intervention_dt = pd.to_datetime(intervention_date)
-            df['intervention'] = (df['date'] >= intervention_dt).astype(int)
-            
-            # Extract time series
-            y = df[dependent_variable].values
+            # Transform input to model format
+            transformed_input = self.transform_outbound(
+                data, intervention_date, dependent_variable=dependent_variable, **kwargs
+            )
             
             # Fit SARIMAX model
-            # Using simple ARIMA(1,0,0) order by default
-            order = kwargs.get('order', (1, 0, 0))
-            seasonal_order = kwargs.get('seasonal_order', (0, 0, 0, 0))
-            
             self.logger.info(
-                f"Fitting SARIMAX model with order={order}, "
-                f"seasonal_order={seasonal_order}"
+                f"Fitting SARIMAX model with order={transformed_input['order']}, "
+                f"seasonal_order={transformed_input['seasonal_order']}"
             )
             
             # Fit model with intervention as exogenous variable
             self.model = SARIMAX(
-                y,
-                exog=df[['intervention']],
-                order=order,
-                seasonal_order=seasonal_order,
+                transformed_input['y'],
+                exog=transformed_input['exog'],
+                order=transformed_input['order'],
+                seasonal_order=transformed_input['seasonal_order'],
                 enforce_stationarity=False,
                 enforce_invertibility=False
             )
             
             self.results = self.model.fit(disp=False)
             
-            # Calculate impact estimates
-            impact_estimates = self._calculate_impact_estimates(df, y)
-            
-            # Prepare output
-            output_data = {
-                "model_type": "interrupted_time_series",
-                "intervention_date": intervention_date,
-                "dependent_variable": dependent_variable,
-                "impact_estimates": impact_estimates,
-                "model_summary": {
-                    "n_observations": int(len(df)),
-                    "pre_period_length": int((df['intervention'] == 0).sum()),
-                    "post_period_length": int((df['intervention'] == 1).sum()),
-                    "aic": float(self.results.aic),
-                    "bic": float(self.results.bic)
-                }
-            }
+            # Transform results to impact engine format
+            standardized_results = self.transform_inbound(self.results)
             
             # Save results to file
             output_dir = Path(output_path)
@@ -137,7 +143,7 @@ class InterruptedTimeSeriesAdapter(Model):
             
             result_file = output_dir / "impact_results.json"
             with open(result_file, 'w') as f:
-                json.dump(output_data, f, indent=2)
+                json.dump(standardized_results, f, indent=2)
             
             self.logger.info(f"Model results saved to {result_file}")
             
@@ -227,4 +233,73 @@ class InterruptedTimeSeriesAdapter(Model):
             "post_intervention_mean": post_mean,
             "absolute_change": intervention_effect,
             "percent_change": (intervention_effect / pre_mean * 100) if pre_mean != 0 else 0.0
+        }
+    
+    def transform_outbound(self, data: pd.DataFrame, intervention_date: str, **kwargs) -> Dict[str, Any]:
+        """Transform impact engine format to SARIMAX model format."""
+        # Get dependent variable from config or kwargs
+        dependent_variable = kwargs.get('dependent_variable', self.config.get('dependent_variable', 'revenue'))
+        
+        # Check if dependent variable exists
+        if dependent_variable not in data.columns:
+            raise ValueError(
+                f"Dependent variable '{dependent_variable}' not found in data. "
+                f"Available columns: {list(data.columns)}"
+            )
+        
+        # Prepare data
+        df = data.copy()
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values('date').reset_index(drop=True)
+        
+        # Create intervention dummy variable
+        intervention_dt = pd.to_datetime(intervention_date)
+        df['intervention'] = (df['date'] >= intervention_dt).astype(int)
+        
+        # Extract time series and exogenous variables
+        y = df[dependent_variable].values
+        exog = df[['intervention']]
+        
+        # Get model parameters from config or kwargs
+        order = kwargs.get('order', self.config.get('order', (1, 0, 0)))
+        seasonal_order = kwargs.get('seasonal_order', self.config.get('seasonal_order', (0, 0, 0, 0)))
+        
+        # Store for later use in transform_inbound
+        self.dependent_variable = dependent_variable
+        self.intervention_date = intervention_date
+        self._transformed_data = df
+        
+        return {
+            'y': y,
+            'exog': exog,
+            'order': order,
+            'seasonal_order': seasonal_order,
+            'data': df,
+            'dependent_variable': dependent_variable,
+            'intervention_date': intervention_date
+        }
+    
+    def transform_inbound(self, model_results: Any) -> Dict[str, Any]:
+        """Transform SARIMAX results to impact engine format."""
+        if not hasattr(model_results, 'params'):
+            raise ValueError("Expected SARIMAX results object with params attribute")
+        
+        # Calculate impact estimates using stored data
+        df = self._transformed_data
+        y = df[self.dependent_variable].values
+        impact_estimates = self._calculate_impact_estimates(df, y)
+        
+        # Prepare standardized output
+        return {
+            "model_type": "interrupted_time_series",
+            "intervention_date": self.intervention_date,
+            "dependent_variable": self.dependent_variable,
+            "impact_estimates": impact_estimates,
+            "model_summary": {
+                "n_observations": int(len(df)),
+                "pre_period_length": int((df['intervention'] == 0).sum()),
+                "post_period_length": int((df['intervention'] == 1).sum()),
+                "aic": float(model_results.aic),
+                "bic": float(model_results.bic)
+            }
         }

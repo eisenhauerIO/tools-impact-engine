@@ -59,7 +59,14 @@ class ModelsManager:
         if model_type not in self.model_registry:
             raise ValueError(f"Unknown model type '{model_type}'. Available: {list(self.model_registry.keys())}")
         
-        return self.model_registry[model_type]()
+        model = self.model_registry[model_type]()
+        
+        # Connect model with configuration
+        model_config = self.measurement_config.get("PARAMS", {})
+        if not model.connect(model_config):
+            raise ConnectionError(f"Failed to connect to {model_type} model")
+        
+        return model
     
     def fit_model(
         self,

@@ -1,7 +1,7 @@
 """Base interface for impact models."""
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Dict, Any
 import pandas as pd
 
 
@@ -12,6 +12,27 @@ class Model(ABC):
     This ensures consistent behavior across different modeling approaches
     (interrupted time series, causal inference, regression discontinuity, etc.).
     """
+
+    @abstractmethod
+    def connect(self, config: Dict[str, Any]) -> bool:
+        """Initialize model with configuration parameters.
+        
+        Args:
+            config: Dictionary containing model configuration parameters
+            
+        Returns:
+            bool: True if initialization successful, False otherwise
+        """
+        pass
+
+    @abstractmethod
+    def validate_connection(self) -> bool:
+        """Validate that the model is properly initialized and ready to use.
+        
+        Returns:
+            bool: True if model is ready, False otherwise
+        """
+        pass
 
     @abstractmethod
     def fit(
@@ -58,5 +79,31 @@ class Model(ABC):
         
         Returns:
             List[str]: Column names that must be present in input data.
+        """
+        pass
+
+    @abstractmethod
+    def transform_outbound(self, data: pd.DataFrame, intervention_date: str, **kwargs) -> Dict[str, Any]:
+        """Transform impact engine format to model library format.
+        
+        Args:
+            data: DataFrame with impact engine standardized format
+            intervention_date: Date string (YYYY-MM-DD format) for intervention
+            **kwargs: Additional model-specific parameters
+            
+        Returns:
+            Dictionary with parameters formatted for the model library
+        """
+        pass
+
+    @abstractmethod
+    def transform_inbound(self, model_results: Any) -> Dict[str, Any]:
+        """Transform model library results to impact engine format.
+        
+        Args:
+            model_results: Raw results from the model library
+            
+        Returns:
+            Dictionary with standardized impact analysis results
         """
         pass
