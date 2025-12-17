@@ -2,7 +2,7 @@
 Impact analysis function for the impact_engine package.
 """
 import pandas as pd
-from typing import Union, List
+from typing import Optional
 from pathlib import Path
 from .data_sources import DataSourceManager
 from .modeling import ModelingEngine
@@ -10,7 +10,7 @@ from .modeling import ModelingEngine
 
 def evaluate_impact(
     config_path: str, 
-    products: Union[List[str], None] = None,
+    products: Optional[pd.DataFrame] = None,
     output_path: str = "impact_analysis_result.csv"
 ) -> str:
     """
@@ -24,7 +24,7 @@ def evaluate_impact(
     
     Args:
         config_path: Path to configuration file containing data source and model settings
-        products: List of product IDs to analyze (optional)
+        products: DataFrame containing product identifiers and characteristics (optional)
         output_path: Directory path where model results should be saved
     
     Returns:

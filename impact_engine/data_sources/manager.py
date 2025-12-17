@@ -78,10 +78,10 @@ class DataSourceManager:
         
         return data_source
     
-    def retrieve_metrics(self, products: List[str]) -> pd.DataFrame:
+    def retrieve_metrics(self, products: pd.DataFrame) -> pd.DataFrame:
         """Retrieve business metrics for specified products using DATA configuration date range."""
-        if not products:
-            raise ValueError("Products list cannot be empty")
+        if products is None or len(products) == 0:
+            raise ValueError("Products DataFrame cannot be empty")
         
         # Get date range from DATA configuration
         start_date = self.data_config["START_DATE"]

@@ -34,13 +34,13 @@ class CatalogSimulatorInterface(DataSourceInterface):
         self.is_connected = True
         return True
     
-    def retrieve_business_metrics(self, products: List[str], start_date: str, end_date: str) -> pd.DataFrame:
+    def retrieve_business_metrics(self, products: pd.DataFrame, start_date: str, end_date: str) -> pd.DataFrame:
         """Retrieve business metrics for specified products using catalog simulator."""
         if not self.is_connected:
             raise ConnectionError("Not connected to simulator. Call connect() first.")
         
-        if not products:
-            raise ValueError("Products list cannot be empty")
+        if products is None or len(products) == 0:
+            raise ValueError("Products DataFrame cannot be empty")
         
         try:
             from online_retail_simulator import simulate_metrics
@@ -48,13 +48,27 @@ class CatalogSimulatorInterface(DataSourceInterface):
             import json
             import os
             
-            # Create product characteristics DataFrame from products list
-            product_characteristics = pd.DataFrame({
-                'product_id': products,
-                'name': [f'Product {pid}' for pid in products],
-                'category': ['Electronics'] * len(products),  # Default category
-                'price': [100.0] * len(products)  # Default price
-            })
+            # Use the provided DataFrame directly
+            product_characteristics = products.copy()
+            
+            # Ensure required columns exist
+            if 'product_id' not in product_characteristics.columns:
+                # Try to find a suitable ID column
+                id_columns = [col for col in product_characteristics.columns 
+                            if 'id' in col.lower() or col.lower() in ['product', 'sku', 'code']]
+                if id_columns:
+                    product_characteristics['product_id'] = product_characteristics[id_columns[0]]
+                else:
+                    # If no ID column found, create one from the index
+                    product_characteristics['product_id'] = product_characteristics.index.astype(str)
+            
+            # Add default values for missing required columns
+            if 'name' not in product_characteristics.columns:
+                product_characteristics['name'] = product_characteristics['product_id'].apply(lambda x: f'Product {x}')
+            if 'category' not in product_characteristics.columns:
+                product_characteristics['category'] = 'Electronics'  # Default category
+            if 'price' not in product_characteristics.columns:
+                product_characteristics['price'] = 100.0  # Default price
             
             # Create config dict for simulator
             simulator_config = {

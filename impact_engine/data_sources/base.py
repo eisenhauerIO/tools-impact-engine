@@ -18,8 +18,17 @@ class DataSourceInterface(ABC):
         pass
     
     @abstractmethod
-    def retrieve_business_metrics(self, products: List[str], start_date: str, end_date: str) -> pd.DataFrame:
-        """Retrieve business metrics for specified products and time range."""
+    def retrieve_business_metrics(self, products: pd.DataFrame, start_date: str, end_date: str) -> pd.DataFrame:
+        """Retrieve business metrics for specified products and time range.
+        
+        Args:
+            products: DataFrame with product identifiers and characteristics
+            start_date: Start date in YYYY-MM-DD format
+            end_date: End date in YYYY-MM-DD format
+            
+        Returns:
+            DataFrame with business metrics for the specified products
+        """
         pass
     
     @abstractmethod
