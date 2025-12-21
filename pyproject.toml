@@ -16,7 +16,8 @@ dependencies = [
   "pandas",
   "pyyaml",
   "statsmodels",
-  "online_retail_simulator @ git+https://github.com/eisenhauerIO/tools-catalog-generator.git@089c87023aa7bf73e742b99fa02911e246f1e5b8"
+  "online_retail_simulator @ git+https://github.com/eisenhauerIO/tools-catalog-generator.git@6ffc94178331cd2d180bf0b81ae3a7a31ef71eec",
+  "artifact-store @ git+https://github.com/eisenhauerIO/utils-artifact-store.git@3ae2b5e80e69d262a6b10a702c567fbc4a97ff47"
 ]
 
 [project.urls]
