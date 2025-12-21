@@ -1,11 +1,11 @@
 """Metrics layer for the impact_engine package."""
 
-from .manager import MetricsManager
-from .base import MetricsInterface
 from .adapter_catalog_simulator import CatalogSimulatorAdapter
+from .base import MetricsInterface
+from .manager import MetricsManager
 
 __all__ = [
     'MetricsManager',
-    'MetricsInterface', 
+    'MetricsInterface',
     'CatalogSimulatorAdapter'
 ]

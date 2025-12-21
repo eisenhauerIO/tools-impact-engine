@@ -1,7 +1,8 @@
+from .config import ConfigurationError, ConfigurationParser, parse_config_file
 from .engine import evaluate_impact
-from .metrics import MetricsInterface, MetricsManager, CatalogSimulatorAdapter
-from .models import Model, ModelsManager, InterruptedTimeSeriesAdapter
-from .config import ConfigurationParser, ConfigurationError, parse_config_file
+from .metrics import CatalogSimulatorAdapter, MetricsInterface, MetricsManager
+from .models import InterruptedTimeSeriesAdapter, Model, ModelsManager
+
 """
 Impact Engine - A tool for measuring causal impact of product interventions.
 """

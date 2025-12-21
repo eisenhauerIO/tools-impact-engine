@@ -2,11 +2,15 @@
 Catalog Simulator Adapter - adapts online_retail_simulator package to MetricsInterface.
 """
 
-import pandas as pd
-from typing import Dict, List, Any, Optional
+import os
+import tempfile
 from datetime import datetime
+from typing import Any, Dict, Optional
 
+import pandas as pd
+import yaml
 from artifact_store import JobInfo, create_job
+
 from .base import MetricsInterface
 
 
@@ -48,7 +52,7 @@ class CatalogSimulatorAdapter(MetricsInterface):
 
         self.is_connected = True
         return True
-    
+
     def retrieve_business_metrics(self, products: pd.DataFrame, start_date: str, end_date: str) -> pd.DataFrame:
         """Retrieve business metrics using catalog simulator's job-aware API."""
         if not self.is_connected:
@@ -59,9 +63,6 @@ class CatalogSimulatorAdapter(MetricsInterface):
 
         try:
             from online_retail_simulator.simulate import simulate_metrics
-            import tempfile
-            import yaml
-            import os
 
             # 1. Create nested job for simulation artifacts
             self._create_simulation_job()
@@ -139,20 +140,18 @@ class CatalogSimulatorAdapter(MetricsInterface):
         enrichment_job.save_df("enriched", enriched_df)
 
         return enriched_df
-    
 
-    
     def validate_connection(self) -> bool:
         """Validate that the catalog simulator connection is active and functional."""
         if not self.is_connected:
             return False
 
         try:
-            from online_retail_simulator.core import RuleBackend
+            from online_retail_simulator.core import RuleBackend  # noqa: F401
             return True
         except ImportError:
             return False
-    
+
     def transform_outbound(self, products: pd.DataFrame, start_date: str, end_date: str) -> Dict[str, Any]:
         """Transform impact engine format to catalog simulator format."""
         # Prepare products DataFrame for simulator
@@ -204,7 +203,7 @@ class CatalogSimulatorAdapter(MetricsInterface):
             "product_characteristics": product_characteristics,
             "rule_config": rule_config
         }
-    
+
     def transform_inbound(self, external_data: Any) -> pd.DataFrame:
         """Transform catalog simulator response to impact engine format."""
         if not isinstance(external_data, pd.DataFrame):
@@ -274,4 +273,4 @@ class CatalogSimulatorAdapter(MetricsInterface):
         ]
         available_columns = [col for col in column_order if col in standardized.columns]
         return standardized[available_columns]
-    
+

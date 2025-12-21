@@ -1,11 +1,11 @@
 """Tests for evaluate_impact function with modeling layer integration."""
 
-import pytest
-import pandas as pd
-import tempfile
 import json
 import os
-from pathlib import Path
+import tempfile
+
+import pandas as pd
+import pytest
 
 from impact_engine import evaluate_impact
 

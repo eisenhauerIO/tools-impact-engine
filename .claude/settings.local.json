@@ -13,7 +13,15 @@
       "Bash(git -C /home/peisenha/office/business/eisenhauer-io/tools/impact-engine/_external/tools-catalog-generator remote -v)",
       "Bash(git -C /home/peisenha/office/business/eisenhauer-io/tools/impact-engine/_external/tools-catalog-generator log -1 --format=\"%H %s\")",
       "Bash(pip cache:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(git -C /home/peisenha/office/business/eisenhauer-io/tools/impact-engine/_external/utils-artifact-store remote:*)",
+      "Bash(git -C /home/peisenha/office/business/eisenhauer-io/tools/impact-engine/_external/utils-artifact-store status --short)",
+      "Bash(git -C /home/peisenha/office/business/eisenhauer-io/tools/impact-engine/_external/tools-catalog-generator status --short)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(ruff check:*)"
     ]
   }
 }

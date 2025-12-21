@@ -2,10 +2,11 @@
 Impact analysis engine for the impact_engine package.
 """
 import pandas as pd
+from artifact_store import create_job
+
+from .config import parse_config_file
 from .metrics import MetricsManager
 from .models import ModelsManager
-from .config import parse_config_file
-from artifact_store import create_job
 
 
 def evaluate_impact(

@@ -1,17 +1,18 @@
 """Tests for CatalogSimulatorAdapter."""
 
-import pytest
-import pandas as pd
 import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pandas as pd
+import pytest
 from artifact_store import create_job
+
 from impact_engine.metrics import CatalogSimulatorAdapter
 
 
 class TestCatalogSimulatorAdapter:
     """Tests for CatalogSimulatorAdapter functionality."""
-    
+
     def test_connect_success(self):
         """Test successful adapter connection."""
         adapter = CatalogSimulatorAdapter()
@@ -27,30 +28,30 @@ class TestCatalogSimulatorAdapter:
         # Check that provided config values are stored (adapter may add additional fields)
         assert adapter.config['mode'] == config['mode']
         assert adapter.config['seed'] == config['seed']
-    
+
     def test_connect_invalid_mode(self):
         """Test connection with invalid mode."""
         adapter = CatalogSimulatorAdapter()
-        
+
         with pytest.raises(ValueError, match="Invalid simulator mode 'invalid'"):
             adapter.connect({'mode': 'invalid'})
-    
+
     def test_connect_invalid_seed(self):
         """Test connection with invalid seed."""
         adapter = CatalogSimulatorAdapter()
-        
+
         with pytest.raises(ValueError, match="Simulator seed must be a non-negative integer"):
             adapter.connect({'seed': -1})
-    
+
     def test_connect_default_values(self):
         """Test connection with default values."""
         adapter = CatalogSimulatorAdapter()
-        
+
         result = adapter.connect({})
         assert result is True
         assert adapter.config['mode'] == 'rule'
         assert adapter.config['seed'] == 42
-    
+
     def test_validate_connection_success(self):
         """Test connection validation when connected and simulator available."""
         adapter = CatalogSimulatorAdapter()
@@ -60,21 +61,21 @@ class TestCatalogSimulatorAdapter:
         mock_core = MagicMock()
         with patch.dict('sys.modules', {'online_retail_simulator.core': mock_core}):
             assert adapter.validate_connection() is True
-    
+
     def test_validate_connection_not_connected(self):
         """Test connection validation when not connected."""
         adapter = CatalogSimulatorAdapter()
-        
+
         assert adapter.validate_connection() is False
-    
+
     def test_validate_connection_simulator_not_available(self):
         """Test connection validation when simulator not available."""
         adapter = CatalogSimulatorAdapter()
         adapter.connect({'mode': 'rule'})
-        
+
         with patch('builtins.__import__', side_effect=ImportError):
             assert adapter.validate_connection() is False
-    
+
     def test_transform_outbound_success(self):
         """Test successful outbound transformation."""
         adapter = CatalogSimulatorAdapter()
@@ -106,7 +107,7 @@ class TestCatalogSimulatorAdapter:
         assert rule_config['METRICS']['PARAMS']['date_start'] == '2024-01-01'
         assert rule_config['METRICS']['PARAMS']['date_end'] == '2024-01-31'
         assert rule_config['METRICS']['PARAMS']['seed'] == 42
-    
+
     def test_transform_outbound_missing_product_id(self):
         """Test outbound transformation with missing product_id column."""
         adapter = CatalogSimulatorAdapter()
@@ -123,7 +124,7 @@ class TestCatalogSimulatorAdapter:
         prod_chars = result['product_characteristics']
         assert 'asin' in prod_chars.columns
         assert prod_chars['asin'].iloc[0] == '0'
-    
+
     def test_transform_outbound_missing_optional_columns(self):
         """Test outbound transformation with missing optional columns."""
         adapter = CatalogSimulatorAdapter()
@@ -144,7 +145,7 @@ class TestCatalogSimulatorAdapter:
         assert prod_chars['name'].iloc[0] == 'Product prod1'
         assert prod_chars['category'].iloc[0] == 'Electronics'
         assert prod_chars['price'].iloc[0] == 100.0
-    
+
     def test_transform_inbound_success(self):
         """Test successful inbound transformation."""
         adapter = CatalogSimulatorAdapter()
@@ -176,20 +177,20 @@ class TestCatalogSimulatorAdapter:
         # Check that ordered_units was mapped to sales_volume
         assert result['sales_volume'].iloc[0] == 5
         assert result['metrics_source'].iloc[0] == 'catalog_simulator'
-    
+
     def test_transform_inbound_invalid_input(self):
         """Test inbound transformation with invalid input."""
         adapter = CatalogSimulatorAdapter()
-        
+
         with pytest.raises(ValueError, match="Expected pandas DataFrame"):
             adapter.transform_inbound("invalid_data")
-    
+
     def test_transform_inbound_empty_dataframe(self):
         """Test inbound transformation with empty DataFrame."""
         adapter = CatalogSimulatorAdapter()
-        
+
         result = adapter.transform_inbound(pd.DataFrame())
-        
+
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 0
         # Should have standard columns
@@ -200,7 +201,7 @@ class TestCatalogSimulatorAdapter:
         ]
         for col in expected_columns:
             assert col in result.columns
-    
+
     def test_retrieve_business_metrics_success(self):
         """Test successful business metrics retrieval."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -240,32 +241,32 @@ class TestCatalogSimulatorAdapter:
             assert len(result) > 0
             assert 'product_id' in result.columns
             assert 'sales_volume' in result.columns
-    
+
     def test_retrieve_business_metrics_not_connected(self):
         """Test retrieving metrics without connection."""
         adapter = CatalogSimulatorAdapter()
-        
+
         products = pd.DataFrame({'product_id': ['prod1']})
-        
+
         with pytest.raises(ConnectionError, match="Not connected to simulator"):
             adapter.retrieve_business_metrics(products, '2024-01-01', '2024-01-31')
-    
+
     def test_retrieve_business_metrics_empty_products(self):
         """Test retrieving metrics with empty products."""
         adapter = CatalogSimulatorAdapter()
         adapter.connect({'mode': 'rule'})
-        
+
         with pytest.raises(ValueError, match="Products DataFrame cannot be empty"):
             adapter.retrieve_business_metrics(pd.DataFrame(), '2024-01-01', '2024-01-31')
-    
+
     def test_retrieve_business_metrics_none_products(self):
         """Test retrieving metrics with None products."""
         adapter = CatalogSimulatorAdapter()
         adapter.connect({'mode': 'rule'})
-        
+
         with pytest.raises(ValueError, match="Products DataFrame cannot be empty"):
             adapter.retrieve_business_metrics(None, '2024-01-01', '2024-01-31')
-    
+
     def test_retrieve_business_metrics_simulator_not_available(self):
         """Test retrieving metrics when simulator package not available."""
         adapter = CatalogSimulatorAdapter()
@@ -277,7 +278,7 @@ class TestCatalogSimulatorAdapter:
         with patch.dict('sys.modules', {'online_retail_simulator.simulate': None}):
             with pytest.raises(ConnectionError, match="online_retail_simulator package not available"):
                 adapter.retrieve_business_metrics(products, '2024-01-01', '2024-01-31')
-    
+
     def test_retrieve_business_metrics_simulation_error(self):
         """Test retrieving metrics when simulation fails."""
         adapter = CatalogSimulatorAdapter()
@@ -295,15 +296,15 @@ class TestCatalogSimulatorAdapter:
         with patch.dict('sys.modules', {'online_retail_simulator.simulate': mock_simulate_module}):
             with pytest.raises(RuntimeError, match="Failed to retrieve metrics"):
                 adapter.retrieve_business_metrics(products, '2024-01-01', '2024-01-31')
-    
+
     def test_available_metrics_initialization(self):
         """Test that available metrics are properly initialized."""
         adapter = CatalogSimulatorAdapter()
-        
+
         assert hasattr(adapter, 'available_metrics')
         assert isinstance(adapter.available_metrics, list)
         assert len(adapter.available_metrics) > 0
-        
+
         # Check for expected metric types
         expected_metrics = ['sales_volume', 'revenue', 'inventory_level', 'customer_engagement']
         for metric in expected_metrics:

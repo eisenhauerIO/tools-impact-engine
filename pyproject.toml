@@ -16,8 +16,8 @@ dependencies = [
   "pandas",
   "pyyaml",
   "statsmodels",
-  "online_retail_simulator @ file:///home/peisenha/office/business/eisenhauer-io/tools/impact-engine/_external/tools-catalog-generator",
-  "artifact-store @ file:///home/peisenha/office/business/eisenhauer-io/tools/impact-engine/_external/utils-artifact-store"
+  "online_retail_simulator @ git+https://github.com/eisenhauerIO/tools-catalog-generator.git@fdc46d47bb5e39785e65219843c9555ee4694100",
+  "artifact-store @ git+https://github.com/eisenhauerIO/utils-artifact-store.git@b389fc5c3e558659626408996d9c896daed00b68"
 ]
 
 [project.urls]
@@ -46,6 +46,15 @@ dependencies = [
 [tool.hatch.envs.default.scripts]
 test = "pytest science/impact_engine/tests/ -v"
 format = "black ."
+lint = "ruff check science/"
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
 
 [tool.hatch.envs.docs]
 dependencies = [

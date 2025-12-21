@@ -1,14 +1,13 @@
 """Tests for ModelsManager."""
 
-import pytest
-import pandas as pd
-import tempfile
 import json
+import tempfile
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
 
-from impact_engine.models import ModelsManager, Model
-from impact_engine.config import ConfigurationError
+import pandas as pd
+import pytest
+
+from impact_engine.models import Model, ModelsManager
 
 
 class MockModel(Model):
@@ -75,31 +74,31 @@ class MockModel(Model):
 
 class TestModelsManagerRegistration:
     """Tests for model registration functionality."""
-    
+
     def test_register_model_success(self):
         """Test successful model registration."""
         engine = ModelsManager()
         engine.register_model("mock", MockModel)
-        
+
         assert "mock" in engine.get_available_models()
         assert engine.model_registry["mock"] == MockModel
-    
+
     def test_register_model_invalid_class(self):
         """Test registration with invalid model class."""
         engine = ModelsManager()
-        
+
         class InvalidModel:
             pass
-        
+
         with pytest.raises(ValueError, match="must implement Model"):
             engine.register_model("invalid", InvalidModel)
-    
+
     def test_get_available_models(self):
         """Test getting list of available models."""
         engine = ModelsManager()
         engine.register_model("mock1", MockModel)
         engine.register_model("mock2", MockModel)
-        
+
         available = engine.get_available_models()
         assert "mock1" in available
         assert "mock2" in available
@@ -109,7 +108,7 @@ class TestModelsManagerRegistration:
 
 class TestModelsManagerConfiguration:
     """Tests for configuration loading."""
-    
+
     def test_load_config_success(self):
         """Test successful configuration loading from file."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -140,12 +139,12 @@ class TestModelsManagerConfiguration:
 
             engine = ModelsManager.from_config_file(config_path)
             assert engine.measurement_config["MODEL"] == "mock"
-    
+
     def test_load_config_file_not_found(self):
         """Test loading non-existent configuration file."""
         with pytest.raises(FileNotFoundError):
             ModelsManager.from_config_file("/nonexistent/path/config.json")
-    
+
     def test_get_current_config(self):
         """Test getting current configuration."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -180,15 +179,15 @@ class TestModelsManagerConfiguration:
 
 class TestModelsManagerGetModel:
     """Tests for model retrieval."""
-    
+
     def test_get_model_by_type(self):
         """Test getting model by explicit type."""
         engine = ModelsManager()
         engine.register_model("mock", MockModel)
-        
+
         model = engine.get_model("mock")
         assert isinstance(model, MockModel)
-    
+
     def test_get_model_from_config(self):
         """Test getting model from loaded configuration."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -220,28 +219,28 @@ class TestModelsManagerGetModel:
             engine.register_model("mock", MockModel)
             model = engine.get_model()
             assert isinstance(model, MockModel)
-    
+
     def test_get_model_unknown_type(self):
         """Test getting unknown model type."""
         engine = ModelsManager()
-        
+
         with pytest.raises(ValueError, match="Unknown model type"):
             engine.get_model("unknown")
-    
+
     def test_get_model_no_config(self):
         """Test getting model without specifying type and no config model."""
         # Create engine with minimal config that doesn't have the requested model
         measurement_config = {"MODEL": "nonexistent", "PARAMS": {}}
         engine = ModelsManager(measurement_config)
         engine.register_model("mock", MockModel)
-        
+
         with pytest.raises(ValueError, match="Unknown model type"):
             engine.get_model()  # Will try to get "nonexistent" model from config
 
 
 class TestModelsManagerFitModel:
     """Tests for model fitting functionality."""
-    
+
     def test_fit_model_success(self):
         """Test successful model fitting."""
         from artifact_store import ArtifactStore
@@ -265,7 +264,7 @@ class TestModelsManagerFitModel:
             )
 
             assert result_path.endswith('.json')
-    
+
     def test_fit_model_empty_data(self):
         """Test fitting with empty data."""
         from artifact_store import ArtifactStore
@@ -286,7 +285,7 @@ class TestModelsManagerFitModel:
                 storage=storage,
             )
             assert result is not None
-    
+
     def test_fit_model_invalid_data(self):
         """Test fitting with invalid data."""
         from artifact_store import ArtifactStore
@@ -308,7 +307,7 @@ class TestModelsManagerFitModel:
                 storage=storage,
             )
             assert result is not None
-    
+
     def test_fit_model_from_config(self):
         """Test fitting model using configuration."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -359,23 +358,23 @@ class TestModelsManagerFitModel:
 
 class TestModelsManagerStatistics:
     """Tests for operation statistics tracking."""
-    
+
     def test_operation_stats_initialization(self):
         """Test that simplified engine works without stats."""
         engine = ModelsManager()
         # Just verify engine works without stats
         assert len(engine.get_available_models()) > 0
-    
+
     def test_operation_stats_tracking(self):
         """Test that engine works without stats tracking."""
         engine = ModelsManager()
         engine.register_model("mock", MockModel)
-        
+
         data = pd.DataFrame({
             'date': pd.date_range('2024-01-01', periods=10),
             'value': range(10)
         })
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             from artifact_store import ArtifactStore
             storage = ArtifactStore(tmpdir)
@@ -388,7 +387,7 @@ class TestModelsManagerStatistics:
                 storage=storage,
             )
             assert result is not None
-    
+
     def test_reset_stats(self):
         """Test that simplified engine works without reset stats."""
         engine = ModelsManager()
