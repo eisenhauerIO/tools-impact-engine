@@ -3,7 +3,7 @@ STORAGE:
 
 RULE:
   CHARACTERISTICS:
-    FUNCTION: default
+    FUNCTION: simulate_characteristics_rule_based
     PARAMS:
       num_products: 50
   METRICS:

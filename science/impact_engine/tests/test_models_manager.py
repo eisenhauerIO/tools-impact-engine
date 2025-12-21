@@ -112,10 +112,14 @@ class TestModelsManagerConfiguration:
     
     def test_load_config_success(self):
         """Test successful configuration loading from file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            products_path = str(Path(tmpdir) / "products.csv")
+            pd.DataFrame({'product_id': ['p1']}).to_csv(products_path, index=False)
+
             config = {
                 "DATA": {
                     "TYPE": "simulator",
+                    "PATH": products_path,
                     "MODE": "rule",
                     "SEED": 42,
                     "START_DATE": "2024-01-01",
@@ -130,14 +134,12 @@ class TestModelsManagerConfiguration:
                     }
                 }
             }
-            json.dump(config, f)
-            config_path = f.name
-        
-        try:
+            config_path = str(Path(tmpdir) / "config.json")
+            with open(config_path, 'w') as f:
+                json.dump(config, f)
+
             engine = ModelsManager.from_config_file(config_path)
             assert engine.measurement_config["MODEL"] == "mock"
-        finally:
-            Path(config_path).unlink()
     
     def test_load_config_file_not_found(self):
         """Test loading non-existent configuration file."""
@@ -146,12 +148,14 @@ class TestModelsManagerConfiguration:
     
     def test_get_current_config(self):
         """Test getting current configuration."""
-        engine = ModelsManager()
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            products_path = str(Path(tmpdir) / "products.csv")
+            pd.DataFrame({'product_id': ['p1']}).to_csv(products_path, index=False)
+
             config = {
                 "DATA": {
                     "TYPE": "simulator",
+                    "PATH": products_path,
                     "MODE": "rule",
                     "SEED": 42,
                     "START_DATE": "2024-01-01",
@@ -165,15 +169,13 @@ class TestModelsManagerConfiguration:
                     }
                 }
             }
-            json.dump(config, f)
-            config_path = f.name
-        
-        try:
+            config_path = str(Path(tmpdir) / "config.json")
+            with open(config_path, 'w') as f:
+                json.dump(config, f)
+
             engine = ModelsManager.from_config_file(config_path)
             assert engine.measurement_config is not None
             assert engine.measurement_config["MODEL"] == "mock"
-        finally:
-            Path(config_path).unlink()
 
 
 class TestModelsManagerGetModel:
@@ -189,13 +191,14 @@ class TestModelsManagerGetModel:
     
     def test_get_model_from_config(self):
         """Test getting model from loaded configuration."""
-        engine = ModelsManager()
-        engine.register_model("mock", MockModel)
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            products_path = str(Path(tmpdir) / "products.csv")
+            pd.DataFrame({'product_id': ['p1']}).to_csv(products_path, index=False)
+
             config = {
                 "DATA": {
                     "TYPE": "simulator",
+                    "PATH": products_path,
                     "MODE": "rule",
                     "SEED": 42,
                     "START_DATE": "2024-01-01",
@@ -209,16 +212,14 @@ class TestModelsManagerGetModel:
                     }
                 }
             }
-            json.dump(config, f)
-            config_path = f.name
-        
-        try:
+            config_path = str(Path(tmpdir) / "config.json")
+            with open(config_path, 'w') as f:
+                json.dump(config, f)
+
             engine = ModelsManager.from_config_file(config_path)
             engine.register_model("mock", MockModel)
             model = engine.get_model()
             assert isinstance(model, MockModel)
-        finally:
-            Path(config_path).unlink()
     
     def test_get_model_unknown_type(self):
         """Test getting unknown model type."""
@@ -310,13 +311,14 @@ class TestModelsManagerFitModel:
     
     def test_fit_model_from_config(self):
         """Test fitting model using configuration."""
-        engine = ModelsManager()
-        engine.register_model("mock", MockModel)
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            products_path = str(Path(tmpdir) / "products.csv")
+            pd.DataFrame({'product_id': ['p1']}).to_csv(products_path, index=False)
+
             config = {
                 "DATA": {
                     "TYPE": "simulator",
+                    "PATH": products_path,
                     "MODE": "rule",
                     "SEED": 42,
                     "START_DATE": "2024-01-01",
@@ -330,32 +332,29 @@ class TestModelsManagerFitModel:
                     }
                 }
             }
-            json.dump(config, f)
-            config_path = f.name
-        
-        try:
+            config_path = str(Path(tmpdir) / "config.json")
+            with open(config_path, 'w') as f:
+                json.dump(config, f)
+
             engine = ModelsManager.from_config_file(config_path)
             engine.register_model("mock", MockModel)
-            
+
             data = pd.DataFrame({
                 'date': pd.date_range('2024-01-01', periods=10),
                 'value': range(10)
             })
-            
-            with tempfile.TemporaryDirectory() as tmpdir:
-                from artifact_store import ArtifactStore
-                storage = ArtifactStore(tmpdir)
 
-                result_path = engine.fit_model(
-                    data=data,
-                    intervention_date="2024-01-05",
-                    output_path="results",
-                    storage=storage,
-                )
+            from artifact_store import ArtifactStore
+            storage = ArtifactStore(tmpdir)
 
-                assert result_path.endswith('.json')
-        finally:
-            Path(config_path).unlink()
+            result_path = engine.fit_model(
+                data=data,
+                intervention_date="2024-01-05",
+                output_path="results",
+                storage=storage,
+            )
+
+            assert result_path.endswith('.json')
 
 
 class TestModelsManagerStatistics:

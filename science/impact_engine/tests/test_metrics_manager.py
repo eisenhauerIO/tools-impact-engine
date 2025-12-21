@@ -115,10 +115,15 @@ class TestMetricsManagerConfiguration:
     
     def test_load_config_file_success(self):
         """Test loading configuration from file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create products CSV
+            products_path = str(Path(tmpdir) / "products.csv")
+            pd.DataFrame({'product_id': ['p1']}).to_csv(products_path, index=False)
+
             config = {
                 "DATA": {
                     "TYPE": "simulator",
+                    "PATH": products_path,
                     "MODE": "rule",
                     "SEED": 42,
                     "START_DATE": "2024-01-01",
@@ -133,14 +138,12 @@ class TestMetricsManagerConfiguration:
                     }
                 }
             }
-            json.dump(config, f)
-            config_path = f.name
-        
-        try:
+            config_path = str(Path(tmpdir) / "config.json")
+            with open(config_path, 'w') as f:
+                json.dump(config, f)
+
             manager = MetricsManager.from_config_file(config_path)
             assert manager.data_config == config["DATA"]
-        finally:
-            Path(config_path).unlink()
     
     def test_load_config_file_not_found(self):
         """Test loading from non-existent config file."""

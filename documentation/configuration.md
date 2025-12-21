@@ -26,6 +26,7 @@ Configures where metrics data comes from.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `TYPE` | string | Yes | Data source type: `"simulator"`, `"database"`, `"api"` |
+| `PATH` | string | Yes | Path to products CSV file |
 | `START_DATE` | string | Yes | Analysis start date (YYYY-MM-DD) |
 | `END_DATE` | string | Yes | Analysis end date (YYYY-MM-DD) |
 
@@ -37,6 +38,7 @@ Use the built-in catalog simulator for testing and development.
 {
   "DATA": {
     "TYPE": "simulator",
+    "PATH": "data/products.csv",
     "MODE": "rule",
     "SEED": 42,
     "START_DATE": "2024-01-01",
@@ -58,6 +60,7 @@ Connect to a SQL database.
 {
   "DATA": {
     "TYPE": "database",
+    "PATH": "data/products.csv",
     "CONNECTION_STRING": "${DATABASE_URL}",
     "TABLE": "product_metrics",
     "START_DATE": "2024-01-01",
@@ -79,6 +82,7 @@ Connect to an external API.
 {
   "DATA": {
     "TYPE": "api",
+    "PATH": "data/products.csv",
     "BASE_URL": "https://api.example.com",
     "AUTH_TOKEN": "${API_TOKEN}",
     "START_DATE": "2024-01-01",
@@ -147,6 +151,7 @@ Values like `${VAR_NAME}` are replaced with the corresponding environment variab
 {
   "DATA": {
     "TYPE": "simulator",
+    "PATH": "data/products.csv",
     "MODE": "rule",
     "SEED": 42,
     "START_DATE": "2024-01-01",
@@ -171,6 +176,7 @@ YAML format is also supported:
 ```yaml
 DATA:
   TYPE: simulator
+  PATH: data/products.csv
   MODE: rule
   SEED: 42
   START_DATE: "2024-01-01"

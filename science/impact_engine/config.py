@@ -58,7 +58,10 @@ class ConfigurationParser:
         data = config["DATA"]
         if "TYPE" not in data:
             raise ConfigurationError("Missing required field 'TYPE' in DATA section")
-        
+
+        if "PATH" not in data:
+            raise ConfigurationError("Missing required field 'PATH' in DATA section")
+
         if "START_DATE" not in data:
             raise ConfigurationError("Missing required field 'START_DATE' in DATA section")
         

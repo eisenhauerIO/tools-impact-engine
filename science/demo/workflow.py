@@ -2,16 +2,28 @@
 Workflow script using the data abstraction layer for impact analysis.
 """
 
+import yaml
 from online_retail_simulator import simulate_characteristics
 from impact_engine import evaluate_impact
 
 
 if __name__ == "__main__":
-	
-	config_path = "config_catalog_simulator.yaml"
-	products_df = simulate_characteristics(config_path)
-	
 
+	# Step 1: Simulate product characteristics
+	config_path = "config_catalog_simulator.yaml"
+	job_info = simulate_characteristics(config_path)
+
+	# Step 2: Get path to products CSV from job info
+	products_path = f"{job_info.storage_path}/{job_info.job_id}/products.csv"
+
+	# Step 3: Update impact engine config with products path
+	with open("config_impact_engine.yaml", "r") as f:
+		impact_config = yaml.safe_load(f)
+	impact_config["DATA"]["PATH"] = products_path
+	with open("config_impact_engine.yaml", "w") as f:
+		yaml.dump(impact_config, f, default_flow_style=False)
+
+	# Step 4: Run impact evaluation
 	config_path = "config_impact_engine.yaml"
-	result_path = evaluate_impact(config_path, products_df)
+	result_path = evaluate_impact(config_path)
 	

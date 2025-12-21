@@ -24,18 +24,10 @@ pip install -e ".[dev]"
 
 ```python
 from impact_engine import evaluate_impact
-import pandas as pd
 
-# Define products to analyze
-products = pd.DataFrame({
-    'product_id': ['prod1', 'prod2'],
-    'name': ['Product 1', 'Product 2']
-})
-
-# Run impact analysis
+# Run impact analysis (products path specified in config)
 result_path = evaluate_impact(
     config_path='config.json',
-    products=products,
     storage_url='results/'
 )
 
@@ -50,6 +42,7 @@ Create a `config.json` file:
 {
   "DATA": {
     "TYPE": "simulator",
+    "PATH": "data/products.csv",
     "MODE": "rule",
     "SEED": 42,
     "START_DATE": "2024-01-01",
@@ -74,11 +67,10 @@ For complete configuration options, see the [Configuration Reference](configurat
 Measure the causal impact of product interventions on business metrics to provide evidence-based recommendations to stakeholders.
 
 **User Journey:**
-1. Create configuration file specifying data source and model parameters
-2. Define products to analyze in a DataFrame
-3. Run `evaluate_impact()` with configuration and products
-4. Review results in standardized JSON format
-5. Share findings with stakeholders
+1. Create configuration file specifying data source, products path, and model parameters
+2. Run `evaluate_impact()` with configuration path
+3. Review results in standardized JSON format
+4. Share findings with stakeholders
 
 ### Data Engineers
 
@@ -165,8 +157,12 @@ All metrics adapters return standardized data:
 For more control, use the managers directly:
 
 ```python
+import pandas as pd
 from impact_engine.models import ModelsManager
 from impact_engine.metrics import MetricsManager
+
+# Load products from CSV
+products = pd.read_csv('data/products.csv')
 
 # Initialize managers
 metrics_manager = MetricsManager.from_config_file('config.json')

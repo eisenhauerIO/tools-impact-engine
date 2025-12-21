@@ -1,20 +1,16 @@
-# Impact Engine Configuration
-# Clean, readable YAML format following simulator config style
-
 DATA:
-  TYPE: simulator
+  END_DATE: '2024-11-30'
   MODE: rule
+  PATH: demo/simulate/output/sim_demo/job-20251221-105912-fd16fefd/products.csv
   SEED: 42
-  START_DATE: "2024-11-01"
-  END_DATE: "2024-11-30"
-
+  START_DATE: '2024-11-01'
+  TYPE: simulator
 MEASUREMENT:
   MODEL: interrupted_time_series
   PARAMS:
     DEPENDENT_VARIABLE: revenue
-    INTERVENTION_DATE: "2024-11-15"
-    START_DATE: "2024-11-01"
-    END_DATE: "2024-11-30"
-
+    END_DATE: '2024-11-30'
+    INTERVENTION_DATE: '2024-11-15'
+    START_DATE: '2024-11-01'
 OUTPUT:
   PATH: demo/impact/results

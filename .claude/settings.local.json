@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(hatch env show:*)",
+      "Bash(hatch run:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}
