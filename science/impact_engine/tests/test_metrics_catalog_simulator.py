@@ -132,13 +132,8 @@ class TestCatalogSimulatorAdapter:
 
         prod_chars = result["product_characteristics"]
         assert "asin" in prod_chars.columns
-        assert "name" in prod_chars.columns
-        assert "category" in prod_chars.columns
-        assert "price" in prod_chars.columns
         assert prod_chars["asin"].iloc[0] == "prod1"
-        assert prod_chars["name"].iloc[0] == "Product prod1"
-        assert prod_chars["category"].iloc[0] == "Electronics"
-        assert prod_chars["price"].iloc[0] == 100.0
+        # Optional columns (name, category, price) are not fabricated
 
     def test_transform_inbound_success(self):
         """Test successful inbound transformation."""
@@ -163,10 +158,9 @@ class TestCatalogSimulatorAdapter:
         assert "product_id" in result.columns  # asin mapped to product_id
         assert "sales_volume" in result.columns  # ordered_units mapped to sales_volume
         assert "revenue" in result.columns
-        assert "inventory_level" in result.columns
-        assert "customer_engagement" in result.columns
         assert "metrics_source" in result.columns
         assert "retrieval_timestamp" in result.columns
+        # inventory_level and customer_engagement are not fabricated
 
         # Check that asin was mapped to product_id
         assert result["product_id"].iloc[0] == "prod1"
@@ -312,7 +306,7 @@ class TestCatalogSimulatorAdapter:
         assert isinstance(adapter.available_metrics, list)
         assert len(adapter.available_metrics) > 0
 
-        # Check for expected metric types
-        expected_metrics = ["sales_volume", "revenue", "inventory_level", "customer_engagement"]
+        # Check for expected metric types (only actual metrics, not fabricated ones)
+        expected_metrics = ["sales_volume", "revenue"]
         for metric in expected_metrics:
             assert metric in adapter.available_metrics

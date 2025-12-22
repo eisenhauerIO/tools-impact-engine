@@ -44,6 +44,12 @@ class Schema:
         # Invert the mapping: {standard_name: external_name}
         inverse = {v: k for k, v in self.mappings[target].items()}
         result = df.copy()
+
+        # Drop target columns that already exist to avoid duplicates after rename
+        existing_targets = [col for col in inverse.values() if col in result.columns]
+        if existing_targets:
+            result = result.drop(columns=existing_targets)
+
         return result.rename(columns=inverse)
 
     def all_columns(self) -> List[str]:

@@ -29,8 +29,6 @@ class CatalogSimulatorAdapter(MetricsInterface):
         self.available_metrics = [
             "sales_volume",
             "revenue",
-            "inventory_level",
-            "customer_engagement",
         ]
 
     def connect(self, config: Dict[str, Any]) -> bool:
@@ -186,16 +184,6 @@ class CatalogSimulatorAdapter(MetricsInterface):
             product_characteristics, "catalog_simulator"
         )
 
-        # Add default values for missing required columns
-        if "name" not in product_characteristics.columns:
-            product_characteristics["name"] = product_characteristics["asin"].apply(
-                lambda x: f"Product {x}"
-            )
-        if "category" not in product_characteristics.columns:
-            product_characteristics["category"] = "Electronics"
-        if "price" not in product_characteristics.columns:
-            product_characteristics["price"] = 100.0
-
         # Use config bridge to build simulator config
         ie_config = {
             "DATA": {
@@ -232,23 +220,6 @@ class CatalogSimulatorAdapter(MetricsInterface):
         # Ensure date column is datetime
         if "date" in standardized.columns:
             standardized["date"] = pd.to_datetime(standardized["date"])
-
-        # Add derived fields if missing
-        if "inventory_level" not in standardized.columns:
-            max_inventory = 1000
-            sales = standardized.get("sales_volume", 0)
-            standardized["inventory_level"] = (
-                (max_inventory - (sales * 10)).clip(lower=0).astype(int)
-            )
-
-        if "customer_engagement" not in standardized.columns:
-            sales_col = standardized.get("sales_volume", pd.Series([0] * len(standardized)))
-            max_sales = sales_col.max() if len(sales_col) > 0 else 1
-            if max_sales > 0:
-                standardized["customer_engagement"] = (sales_col / max_sales).clip(upper=1.0)
-            else:
-                standardized["customer_engagement"] = 0.0
-            standardized["customer_engagement"] = standardized["customer_engagement"].fillna(0.0)
 
         # Add metadata fields
         standardized["metrics_source"] = "catalog_simulator"

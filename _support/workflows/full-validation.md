@@ -28,7 +28,7 @@ Ask the user how to proceed (commit, stash, discard changes, or add untracked fi
 
 Run:
 ```bash
-hatch run pytest .
+hatch run pytest science/impact_engine/tests/ -v
 ```
 If any test fails (non-zero exit code), STOP. Ask the user for input before continuing.
 
@@ -36,7 +36,7 @@ If any test fails (non-zero exit code), STOP. Ask the user for input before cont
 
 Run:
 ```bash
-hatch run python science/demo/workflow.py
+cd science/demo && hatch run python workflow.py
 ```
 If the demo script fails (non-zero exit code), STOP. Ask the user for input before continuing.
 
@@ -44,7 +44,7 @@ If the demo script fails (non-zero exit code), STOP. Ask the user for input befo
 
 Build the Sphinx documentation:
 ```bash
-cd documentation && sphinx-build -b html . _build/html
+cd documentation && hatch -e docs run sphinx-build -b html . _build/html
 ```
 If the build fails (non-zero exit code), STOP. Warnings are acceptable, only errors require stopping.
 

@@ -27,7 +27,8 @@
       "Bash(pip show:*)",
       "Bash(ls:*)",
       "Bash(wc:*)",
-      "Bash(pre-commit run:*)"
+      "Bash(pre-commit run:*)",
+      "Bash(hatch -e docs run sphinx-build:*)"
     ]
   }
 }

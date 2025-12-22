@@ -7,6 +7,12 @@ ensuring libraries communicate only through well-defined config formats.
 
 from typing import Any, Dict
 
+# Default simulation parameters for catalog simulator
+DEFAULT_SALE_PROB = 0.7
+DEFAULT_IMPRESSION_TO_VISIT_RATE = 0.15
+DEFAULT_VISIT_TO_CART_RATE = 0.25
+DEFAULT_CART_TO_ORDER_RATE = 0.80
+
 
 class ConfigBridge:
     """Translates configuration between impact-engine and external systems."""
@@ -72,11 +78,11 @@ class ConfigBridge:
                         "date_start": data.get("START_DATE"),
                         "date_end": data.get("END_DATE"),
                         "seed": seed,
-                        "sale_prob": 0.7,
+                        "sale_prob": DEFAULT_SALE_PROB,
                         "granularity": "daily",
-                        "impression_to_visit_rate": 0.15,
-                        "visit_to_cart_rate": 0.25,
-                        "cart_to_order_rate": 0.80,
+                        "impression_to_visit_rate": DEFAULT_IMPRESSION_TO_VISIT_RATE,
+                        "visit_to_cart_rate": DEFAULT_VISIT_TO_CART_RATE,
+                        "cart_to_order_rate": DEFAULT_CART_TO_ORDER_RATE,
                     },
                 },
             }
