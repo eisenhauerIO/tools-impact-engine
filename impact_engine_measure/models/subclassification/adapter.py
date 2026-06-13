@@ -252,6 +252,12 @@ class SubclassificationAdapter(ModelInterface):
                 # All values identical — single bin
                 bins = pd.Series(0, index=df.index)
 
+            # qcut(duplicates='drop') may silently return all-NaN bins when
+            # the column has too few distinct values to form any bin edges.
+            # Collapse those rows into a single stratum so groupby doesn't drop them.
+            if bins.isna().any():
+                bins = bins.fillna(0)
+
             actual_bins = int(bins.nunique())
             if actual_bins < n_strata:
                 self.logger.warning(
