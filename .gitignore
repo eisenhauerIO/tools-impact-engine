@@ -9,6 +9,9 @@ documentation/_build/
 # External dependencies
 _external/
 
+# Notebook checkpoints
+.ipynb_checkpoints/
+
 # Notebook outputs
 output/
 documentation/models/output/
